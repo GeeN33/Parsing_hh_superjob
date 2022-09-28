@@ -1,4 +1,7 @@
-def save_to_file(vacancies):
+def save_to_file(vacancies:list):
+    """
+     сохранение в текстовый документ «vacancies.txt»
+    """
     with open('vacancies.txt','w',encoding="utf-8") as f:
         vacancy_sam = ''
         for vacancy in vacancies:

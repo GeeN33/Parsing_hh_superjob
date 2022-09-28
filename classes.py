@@ -9,8 +9,15 @@ class Engine(ABC):
     def get_request(self):
         pass
 
+    @abstractmethod
+    def parser(self):
+        pass
+
 class Superjob(Engine):
-    def __init__(self, search, vacancy_count):
+    """
+    поиск на https://russia.superjob.ru
+    """
+    def __init__(self,search:str, vacancy_count:int):
         self.vacancy_count = vacancy_count
         self.search = search
         self.HOST = 'https://russia.superjob.ru'
@@ -19,11 +26,11 @@ class Superjob(Engine):
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.102 Safari/537.36 OPR/90.0.4480.84'}
 
-    def get_request(self, url, params=''):
+    def get_request(self, url:str, params:dict) -> str:
         r = requests.get(url, headers= self.HEADERS, params=params)
         return r
 
-    def get_content(self, html):
+    def get_content(self, html:str) -> list:
         vacancies = []
         soup = BeautifulSoup(html, 'html.parser')
         items = soup.find_all('div', class_='f-test-search-result-item')
@@ -40,7 +47,7 @@ class Superjob(Engine):
                 pass
         return vacancies
 
-    def parser(self):
+    def parser(self) -> list:
         page = 1
         vacancies = []
         html = self.get_request(self.URL, params={'keywords': self.search, 'page': page})
@@ -56,22 +63,23 @@ class Superjob(Engine):
         return vacancies
 
 class HH(Engine):
-    def __init__(self, search, vacancy_count):
+    """
+    поиск на https://api.hh.ru/vacancies
+    """
+    def __init__(self,search:str, vacancy_count:int):
         self.vacancy_count = vacancy_count
         self.search = search
         self.URL = 'https://api.hh.ru/vacancies/'
 
-    def get_request(self, url, params=''):
+    def get_request(self, url:str, params:dict) -> str:
         r = requests.get(url, params=params)
         data = r.content.decode()
         r.close()
         return data
 
-    def parser(self):
+    def parser(self) -> list:
         vacancies = []
-        page = 1
-        params = {'text': self.search, 'page': page, 'per_page': 100}
-        api = self.get_request(self.URL, params)
+        page = 0
         print(f'parser hh.ru search {self.search}')
         while True:
             page += 1
@@ -92,7 +100,7 @@ class HH(Engine):
 
         return vacancies
 
-    def salary(self, obj):
+    def salary(self, obj:str) -> str:
         str_salary = ''
         if obj["salary"] != None:
             if obj["salary"]["from"] != None:
@@ -106,13 +114,16 @@ class HH(Engine):
         return str_salary
 
 class Vacancy():
-    def __init__(self, source, name , href, description, salary):
+    """
+     класс вакансии
+    """
+    def __init__(self, source:str, name:str , href:str, description:str, salary:str):
         self.source = source
         self.name = name
         self.href = href
         self.description = description
         self.salary =  salary
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = f'source = {self.source}\nname = {self.name}\nhref = {self.href}\ndescription = {self.description}\nsalary = {self.salary}\n'+('-----'*10)
         return s
 
