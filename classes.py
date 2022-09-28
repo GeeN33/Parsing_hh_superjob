@@ -1,6 +1,8 @@
-from abc import ABC, abstractmethod
+import json
+import time
 import requests
 from bs4 import BeautifulSoup
+from abc import ABC, abstractmethod
 
 class Engine(ABC):
     @abstractmethod
@@ -8,8 +10,8 @@ class Engine(ABC):
         pass
 
 class Superjob(Engine):
-    def __init__(self, search, pages):
-        self.pages = pages
+    def __init__(self, search, vacancy_count):
+        self.vacancy_count = vacancy_count
         self.search = search
         self.HOST = 'https://russia.superjob.ru'
         self.URL = 'https://russia.superjob.ru/vacancy/search/'
@@ -53,7 +55,7 @@ class Superjob(Engine):
         print(f'parser superjob.ru search {self.search}')
         while html.status_code == 200:
             vacancy = self.get_content(html.text)
-            if len(vacancy) == 0 or len(vacancies) > self.pages: break
+            if len(vacancy) == 0 or len(vacancies) >= self.vacancy_count: break
             vacancies.extend(vacancy)
             print(f'parser page {page} vacancies {len(vacancy)}')
             page += 1
@@ -64,8 +66,54 @@ class Superjob(Engine):
 
 
 class HH(Engine):
-    def get_request(self):
-        pass
+    def __init__(self, search, vacancy_count):
+        self.vacancy_count = vacancy_count
+        self.search = search
+        self.URL = 'https://api.hh.ru/vacancies/'
+
+    def get_request(self, url, params=''):
+        r = requests.get(url, params=params)
+        data = r.content.decode()
+        r.close()
+        return data
+
+    def parser(self):
+        vacancies = []
+        page = 1
+        params = {'text': self.search, 'page': page, 'per_page': 100}
+        api = self.get_request(self.URL, params)
+        print(f'parser hh.ru search {self.search}')
+        while True:
+            page += 1
+            params = {'text': self.search, 'page': page, 'per_page': 100}
+            api = self.get_request(self.URL, params)
+            js_obj = json.loads(api)
+            for obj in js_obj["items"]:
+                name = obj["name"]
+                href = obj["apply_alternate_url"]
+                description = str(obj["snippet"]["requirement"])+ ' ' +str(obj["snippet"]["responsibility"])
+                salary =  self.salary(obj)
+                vacancies.append(
+                Vacancy('hh.ru', name,  href, description, salary))
+
+            print(f'parser page {page} vacancies {len(js_obj["items"])}')
+            if len(vacancies) >= self.vacancy_count or js_obj['pages'] - page <= 1: break
+            time.sleep(0.25)
+
+        return vacancies
+
+    def salary(self, obj):
+        str_salary = ''
+        if obj["salary"] != None:
+            if obj["salary"]["from"] != None:
+                str_salary += 'от ' + str(obj["salary"]["from"])
+            if obj["salary"]["to"] != None:
+                str_salary += ' до ' + str(obj["salary"]["to"])
+            if obj["salary"]["currency"] != None:
+                str_salary += ' ' + obj["salary"]["currency"]
+        else:
+            str_salary = 'По договорённости'
+        return str_salary
 
 class Vacancy():
     def __init__(self, source, name , href, description, salary):
