@@ -29,18 +29,10 @@ class Superjob(Engine):
         items = soup.find_all('div', class_='f-test-search-result-item')
         for item in items:
             try:
-                item1 = item.find('div', class_='_8zbxf f-test-vacancy-item _3HN9U hi8Rr _3E2-y _1k9rz'). \
-                    find('div', class_='_2lp1U _2J-3z _3B5DQ')
-                item2 = item1.find_all('div', class_='_3gyJS')
-                name = item2[3].find('div', class_='_2J-3z _3B5DQ').find('div', class_='_3gyJS'). \
-                    find('span', class_='_9fIP1 _249GZ _1jb_5 QLdOc').find('a').get_text()
-                href = item2[3].find('div', class_='_2J-3z _3B5DQ').find('div', class_='_3gyJS'). \
-                    find('span', class_='_9fIP1 _249GZ _1jb_5 QLdOc').find('a').get('href')
-                description = item2[10].find('div', class_='_2d_Of _2J-3z _3B5DQ').find('div', class_='_3gyJS'). \
-                    find('span', class_='_1Nj4W _249GZ _1jb_5 _1dIgi _3qTky').get_text()
-
-                salary = item2[3].find('div', class_='_2J-3z _3B5DQ').find_all('div', class_='_3gyJS')[1]. \
-                    find('span', class_='_2eYAG _1nqY_ _249GZ _1jb_5 _1dIgi').get_text()
+                name = item.find('span', class_='_9fIP1 _249GZ _1jb_5 QLdOc').get_text()
+                href = item.find('span', class_='_9fIP1 _249GZ _1jb_5 QLdOc').find('a').get('href')
+                description = item.find('span', class_='_1Nj4W _249GZ _1jb_5 _1dIgi _3qTky').get_text()
+                salary =  item.find('span', class_='_2eYAG _1nqY_ _249GZ _1jb_5 _1dIgi').get_text()
 
                 vacancies.append(Vacancy('superjob.ru' ,name, self.HOST + href, description, salary.replace('\xa0', ' ')))
 
@@ -62,8 +54,6 @@ class Superjob(Engine):
             html = self.get_request(self.URL, params={'keywords': self.search, 'page': page})
 
         return vacancies
-
-
 
 class HH(Engine):
     def __init__(self, search, vacancy_count):
@@ -91,7 +81,7 @@ class HH(Engine):
             for obj in js_obj["items"]:
                 name = obj["name"]
                 href = obj["apply_alternate_url"]
-                description = str(obj["snippet"]["requirement"])+ ' ' +str(obj["snippet"]["responsibility"])
+                description = (str(obj["snippet"]["requirement"])+ ' ' +str(obj["snippet"]["responsibility"])).replace('<highlighttext>','').replace('</highlighttext>','')
                 salary =  self.salary(obj)
                 vacancies.append(
                 Vacancy('hh.ru', name,  href, description, salary))
