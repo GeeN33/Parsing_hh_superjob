@@ -8,7 +8,8 @@ class Engine(ABC):
         pass
 
 class Superjob(Engine):
-    def __init__(self, search):
+    def __init__(self, search, pages):
+        self.pages = pages
         self.search = search
         self.HOST = 'https://russia.superjob.ru'
         self.URL = 'https://russia.superjob.ru/vacancy/search/'
@@ -33,19 +34,13 @@ class Superjob(Engine):
                     find('span', class_='_9fIP1 _249GZ _1jb_5 QLdOc').find('a').get_text()
                 href = item2[3].find('div', class_='_2J-3z _3B5DQ').find('div', class_='_3gyJS'). \
                     find('span', class_='_9fIP1 _249GZ _1jb_5 QLdOc').find('a').get('href')
-                Description = item2[10].find('div', class_='_2d_Of _2J-3z _3B5DQ').find('div', class_='_3gyJS'). \
+                description = item2[10].find('div', class_='_2d_Of _2J-3z _3B5DQ').find('div', class_='_3gyJS'). \
                     find('span', class_='_1Nj4W _249GZ _1jb_5 _1dIgi _3qTky').get_text()
 
-                Salary = item2[3].find('div', class_='_2J-3z _3B5DQ').find_all('div', class_='_3gyJS')[1]. \
+                salary = item2[3].find('div', class_='_2J-3z _3B5DQ').find_all('div', class_='_3gyJS')[1]. \
                     find('span', class_='_2eYAG _1nqY_ _249GZ _1jb_5 _1dIgi').get_text()
 
-                vacancies.append({
-                    'name': name,
-                    'href': self.HOST + href,
-                    'Description': Description,
-                    'Salary': Salary.replace('\xa0', ' ')
-
-                })
+                vacancies.append(Vacancy('superjob.ru' ,name, self.HOST + href, description, salary.replace('\xa0', ' ')))
 
             except Exception:
                 pass
@@ -58,16 +53,40 @@ class Superjob(Engine):
         print(f'parser superjob.ru search {self.search}')
         while html.status_code == 200:
             vacancy = self.get_content(html.text)
-            if len(vacancy) == 0: break
+            if len(vacancy) == 0 or len(vacancies) > self.pages: break
             vacancies.extend(vacancy)
             print(f'parser page {page} vacancies {len(vacancy)}')
             page += 1
             html = self.get_request(self.URL, params={'keywords': self.search, 'page': page})
 
-        for vacancy in vacancies:
-            print(vacancy)
+        return vacancies
+
 
 
 class HH(Engine):
     def get_request(self):
         pass
+
+class Vacancy():
+    def __init__(self, source, name , href, description, salary):
+        self.source = source
+        self.name = name
+        self.href = href
+        self.description = description
+        self.salary =  salary
+    def __repr__(self):
+        s = f'source = {self.source}\nname = {self.name}\nhref = {self.href}\ndescription = {self.description}\nsalary = {self.salary}\n'+('-----'*10)
+        return s
+
+
+
+
+
+
+
+
+
+
+
+
+
