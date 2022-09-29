@@ -1,5 +1,5 @@
 from classes import Superjob,HH
-from utils import save_to_file
+from utils import save_to_file, print_top_10
 
 
 if __name__ == '__main__':
@@ -15,6 +15,7 @@ if __name__ == '__main__':
     hh = HH(search , vacancies_count - len(vacancies))
     vacancies.extend(hh.parser())
     save_to_file(vacancies)
+    print_top_10(vacancies)
 
 
 
