@@ -20,7 +20,6 @@ class Superjob(Engine):
     def __init__(self,search:str, vacancy_count:int):
         self.__vacancy_count = vacancy_count
         self.__search = search
-        self.__HOST = 'https://russia.superjob.ru'
         self.__URL = 'https://russia.superjob.ru/vacancy/search/'
         self.__HEADERS = {
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
@@ -36,12 +35,8 @@ class Superjob(Engine):
         items = soup.find_all('div', class_='f-test-search-result-item')
         for item in items:
             try:
-                name = item.find('span', class_='_9fIP1 _249GZ _1jb_5 QLdOc').get_text()
-                href = item.find('span', class_='_9fIP1 _249GZ _1jb_5 QLdOc').find('a').get('href')
-                description = item.find('span', class_='_1Nj4W _249GZ _1jb_5 _1dIgi _3qTky').get_text()
-                salary =  item.find('span', class_='_2eYAG _1nqY_ _249GZ _1jb_5 _1dIgi').get_text()
 
-                vacancies.append(Vacancy('superjob.ru' ,name, self.__HOST + href, description, salary.replace('\xa0', ' ')))
+                vacancies.append(Vacancy(item))
 
             except Exception:
                 pass
@@ -83,23 +78,47 @@ class HH(Engine):
         print(f'parser hh.ru search {self.__search}')
         while True:
             page += 1
-            params = {'text': self.__search, 'page': page, 'per_page': 100}
+            params = {'text': self.__search, 'page': page, 'per_page': 100, 'area':'113'}
             api = self.get_request(self.__URL, params)
             js_obj = json.loads(api)
             for obj in js_obj["items"]:
-                name = obj["name"]
-                href = obj["apply_alternate_url"]
-                description = (str(obj["snippet"]["requirement"])+ ' ' +str(obj["snippet"]["responsibility"])).replace('<highlighttext>','').replace('</highlighttext>','')
-                salary =  self.salary(obj)
-                vacancies.append(Vacancy('hh.ru', name,  href, description, salary))
-
+                vacancies.append(Vacancy(obj, True))
             print(f'parser page {page} vacancies {len(js_obj["items"])}')
             if len(vacancies) >= self.__vacancy_count or js_obj['pages'] - page <= 1: break
             time.sleep(0.25)
 
         return vacancies
 
-    def salary(self, obj:str) -> str:
+
+
+class Vacancy():
+    """
+     класс вакансии
+    """
+    def __init__(self, item, hh = False ):
+        if hh:
+            self.parser_hh(item)
+        else:
+            self.parser_superjob(item)
+
+    def __repr__(self) -> str:
+        s = f'source = {self.source}\nname = {self.name}\nhref = {self.href}\ndescription = {self.description}\nsalary = {self.salary}\n'+('-----'*10)
+        return s
+    def parser_superjob(self, item):
+        self.source = 'superjob.ru'
+        self.name = item.find('span', class_='_9fIP1 _249GZ _1jb_5 QLdOc').get_text()
+        self.href = 'https://russia.superjob.ru' + item.find('span', class_='_9fIP1 _249GZ _1jb_5 QLdOc').find('a').get('href')
+        self.description = item.find('span', class_='_1Nj4W _249GZ _1jb_5 _1dIgi _3qTky').get_text()
+        self.salary = item.find('span', class_='_2eYAG _1nqY_ _249GZ _1jb_5 _1dIgi').get_text().replace(' ', ' ')
+
+    def parser_hh(self, obj):
+        self.source = 'hh.ru'
+        self.name = obj["name"]
+        self.href = obj["apply_alternate_url"]
+        self.description = (str(obj["snippet"]["requirement"]) + ' ' + str(obj["snippet"]["responsibility"])).replace('<highlighttext>', '').replace('</highlighttext>', '')
+        self.salary = self.salary(obj)
+
+    def salary(self, obj: str) -> str:
         str_salary = ''
         if obj["salary"] != None:
             if obj["salary"]["from"] != None:
@@ -111,28 +130,6 @@ class HH(Engine):
         else:
             str_salary = 'По договорённости'
         return str_salary
-
-class Vacancy():
-    """
-     класс вакансии
-    """
-    def __init__(self, source:str, name:str , href:str, description:str, salary:str):
-        self.source = source
-        self.name = name
-        self.href = href
-        self.description = description
-        self.salary =  salary
-    def __repr__(self) -> str:
-        s = f'source = {self.source}\nname = {self.name}\nhref = {self.href}\ndescription = {self.description}\nsalary = {self.salary}\n'+('-----'*10)
-        return s
-
-
-
-
-
-
-
-
 
 
 
