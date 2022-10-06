@@ -6,7 +6,7 @@ if __name__ == '__main__':
     vacancies = []
     search = input('Введите вакансию для поиска\n')
     if search == '': search = 'python'
-    vacancies_count = 1000
+    vacancies_count = 500
     # поиск на https://russia.superjob.ru
     superjob = Superjob(search ,int(vacancies_count/2))
     vacancies = superjob.parser()
